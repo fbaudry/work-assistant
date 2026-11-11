@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import ProjectProgress from './ProjectProgress';
 import './source-context.css';
 
 type Provider = 'notion' | 'linear' | 'slack';
@@ -12,6 +13,20 @@ export type ProjectContext = {
   collectionMode: 'conversation';
   summary: string;
   referenceSourceIds?: string[];
+  progress?: {
+    phases: {
+      id: 'kickoff' | 'technical-framing' | 'development';
+      status: 'completed' | 'current' | 'upcoming';
+      summary: string;
+      sourceIds: string[];
+    }[];
+    issues: {
+      sourceId: string;
+      parentId: string | null;
+      status: 'backlog' | 'todo' | 'in_progress' | 'in_review' | 'to_test' | 'done' | 'canceled';
+      assignee: string | null;
+    }[];
+  };
   decisions: { title: string; detail: string; evidence: Evidence[] }[];
   questions: { title: string; detail: string; evidence: Evidence[] }[];
   coverage: { provider: Provider; label: string; detail: string; complete: boolean }[];
@@ -127,6 +142,7 @@ export default function SourceContext({ project }: { project: ProjectContext }) 
       </nav>
 
       {tab === 'overview' && <>
+        {project.progress && <ProjectProgress project={project} progress={project.progress} />}
         <section className="context-section" aria-labelledby="context-summary-title">
           <h2 id="context-summary-title">En bref</h2>
           <p className="context-summary">{project.summary}</p>
