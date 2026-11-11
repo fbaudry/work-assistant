@@ -28,6 +28,13 @@ export async function readProjectContext(filename) {
         || !providers.includes(source.provider) || !https(source.url)
         || (source.updatedAt !== null && !date(source.updatedAt))) throw new Error('Invalid source');
     }
+    if (project.referenceSourceIds !== undefined) {
+      const ids = project.referenceSourceIds;
+      if (!Array.isArray(ids) || new Set(ids).size !== ids.length || ids.length > 3
+        || !ids.every((id) => text(id) && project.sources.some((source) => source.id === id))) {
+        throw new Error('Invalid project references');
+      }
+    }
     for (const item of [...project.decisions, ...project.questions]) {
       if (!text(item.title) || !text(item.detail) || !Array.isArray(item.evidence)
         || !item.evidence.every((link) => text(link.title) && https(link.url))) throw new Error('Invalid evidence');

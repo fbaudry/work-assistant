@@ -52,6 +52,16 @@ test('malformed snapshots fail instead of pretending the collection is empty', a
   }
 });
 
+test('project references link to existing collected sources and preserve their order', async (t) => {
+  const entry = { ...project(), referenceSourceIds: ['thread-1', 'page-1'] };
+  const filename = await contextFile(t, JSON.stringify({ projects: [entry] }));
+  assert.deepEqual(await readProjectContext(filename), { projects: [entry] });
+  for (const referenceSourceIds of [null, 'page-1', ['missing-page'], ['page-1', 'page-1']]) {
+    const invalid = await contextFile(t, JSON.stringify({ projects: [{ ...project(), referenceSourceIds }] }));
+    await assert.rejects(readProjectContext(invalid));
+  }
+});
+
 test('rejects unsafe URLs both in sources and in cited evidence', async (t) => {
   for (const url of [
     'javascript:alert(1)', 'data:text/html,unsafe', 'file:///private/context.json',

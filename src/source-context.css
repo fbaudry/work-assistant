@@ -1,65 +1,88 @@
 .context-page { max-width: 1040px; }
-.context-eyebrow { margin-bottom: 10px; color: var(--muted); font-size: 11px; }
-.context-header .page-description { max-width: 690px; }
-.context-collection { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
-.context-collection-note { margin-top: 10px; color: var(--muted); font-size: 11px; line-height: 1.7; }
-.context-tabs { border-bottom: 1px solid var(--border); }
+.context-header .page-description { max-width: 720px; font-size: 14px; line-height: 1.7; }
+.context-dateline { margin-top: 12px; color: var(--muted); font-size: 12px; line-height: 1.7; }
+.context-dateline time { font-size: inherit; }
+.context-tabs { border-bottom: 1px solid var(--border); overflow-x: auto; gap: 28px; }
+.context-tabs .tab { flex-shrink: 0; font-size: 14px; }
+.context-tabs .tab span { margin-left: 5px; color: var(--muted); font-size: 12px; }
 .context-tabs + .context-section { border-top: 0; margin-top: 0; }
-.context-section { border-top: 1px solid var(--border); margin-top: 30px; padding-top: 25px; }
+.context-section { border-top: 1px solid var(--border); margin-top: 28px; padding-top: 24px; }
 .context-section-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
-.context-section-note { margin-top: 10px; color: var(--muted); font-size: 12px; line-height: 1.7; max-width: 720px; }
-.context-summary { font-size: 14px; line-height: 1.85; margin-top: 16px; white-space: pre-line; }
-.context-count { color: var(--muted); font-size: 11px; background: var(--subtle); border-radius: 5px; padding: 3px 7px; }
-.context-findings { display: grid; gap: 22px; margin-top: 20px; }
-.context-finding h3, .context-provider h3, .context-source h3 { font-size: 13px; line-height: 1.6; font-weight: 550; margin: 0; }
-.context-finding > p, .context-source > p { font-size: 12px; line-height: 1.8; color: var(--muted); margin-top: 6px; white-space: pre-line; overflow-wrap: anywhere; }
-.context-evidence { display: flex; flex-wrap: wrap; gap: 6px 15px; margin: 8px 0 0; padding: 0; list-style: none; }
+.context-section-note { margin-top: 9px; color: var(--muted); font-size: 14px; line-height: 1.7; max-width: 720px; }
+.context-summary { font-size: 15px; line-height: 1.8; margin-top: 12px; white-space: pre-line; max-width: 760px; }
+.context-findings { margin-top: 15px; }
+.context-disclosure { border-bottom: 1px solid var(--border); }
+.context-disclosure:last-child { border-bottom: 0; }
+.context-disclosure > summary { display: flex; align-items: baseline; gap: 12px; padding: 16px 0; cursor: pointer; list-style: none; }
+.context-disclosure > summary::-webkit-details-marker, .context-collection-details > summary::-webkit-details-marker { display: none; }
+.context-disclosure > summary::before, .context-collection-details > summary::before { content: '›'; color: var(--muted); width: 12px; flex: 0 0 12px; display: inline-block; font-size: 18px; line-height: 1; transform-origin: 45% 50%; }
+.context-disclosure[open] > summary::before, .context-collection-details[open] > summary::before { transform: rotate(90deg); }
+.context-disclosure > summary:hover .context-item-title { color: var(--accent); }
+.context-disclosure > summary:focus-visible, .context-collection-details > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px; }
+.context-item-title { font-size: 14px; line-height: 1.65; font-weight: 500; overflow-wrap: anywhere; }
+.context-item-meta { color: var(--muted); font-size: 12px; line-height: 1.7; white-space: nowrap; margin-left: auto; }
+.context-disclosure-content { padding: 0 0 18px 24px; }
+.context-disclosure-content > p { font-size: 14px; line-height: 1.8; max-width: 760px; white-space: pre-line; overflow-wrap: anywhere; }
+.context-evidence { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 12px 0 0; padding: 0; list-style: none; }
 .context-page a { color: var(--accent); text-decoration: none; }
 .context-page a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .context-page a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
-.context-evidence a { font-size: 11px; line-height: 1.7; overflow-wrap: anywhere; }
-.context-questions { border-left: 2px solid light-dark(#dfd7bb, #605941); padding-left: 16px; }
-.context-provider-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 20px; }
-.context-provider { border: 1px solid var(--border); border-radius: 8px; padding: 17px; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; }
-.context-provider-heading { display: flex; align-items: center; gap: 8px; }
-.context-provider-mark { width: 23px; height: 23px; border: 1px solid var(--border); border-radius: 5px; display: grid; place-items: center; color: var(--muted); font-size: 12px; }
-.context-provider-count { font-size: 12px; line-height: 1.6; margin-top: 18px; font-weight: 500; }
-.context-provider > p, .context-provider-access > p { margin-top: 7px; font-size: 11px; color: var(--muted); line-height: 1.7; overflow-wrap: anywhere; }
-.context-coverage-label { color: var(--muted); font-size: 10px; margin-top: 9px; margin-bottom: 16px; }
-.context-provider-access { width: 100%; border-top: 1px solid var(--border); padding-top: 12px; margin-top: auto; }
-.context-access-label { display: block; color: var(--muted); font-size: 10px; margin-bottom: 6px; }
-.context-access-status { display: block; font-size: 11px; }
-.context-access-status.available { color: light-dark(#29704d, #9accad); }
-.context-connect-link { display: inline-block; font-size: 11px; margin-top: 12px; line-height: 1.7; }
-.context-access-error { font-size: 12px; color: var(--danger); margin-top: 16px; line-height: 1.7; }
-.context-filters { display: flex; flex-wrap: wrap; gap: 5px; margin: 18px 0 8px; }
-.context-filter { display: flex; align-items: center; gap: 7px; background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 7px 10px; color: var(--muted); font-size: 11px; }
+.context-evidence a { font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
+.context-inline-button { background: transparent; border: 0; padding: 10px 0; margin-top: 3px; color: var(--accent); font-size: 14px; }
+.context-inline-button:hover { text-decoration: underline; text-underline-offset: 3px; }
+.context-reference-list { display: grid; margin-top: 10px; }
+.context-reference { display: flex; align-items: baseline; gap: 16px; padding: 12px 0; font-size: 14px; line-height: 1.7; }
+.context-reference > span:first-child { overflow-wrap: anywhere; }
+.context-reference-provider { margin-left: auto; color: var(--muted); white-space: nowrap; font-size: 12px; }
+.context-search { margin-top: 18px; font-size: 14px; }
+.context-filters { display: flex; flex-wrap: wrap; gap: 5px; margin: 12px 0 0; }
+.context-filter { display: flex; align-items: center; gap: 7px; background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 7px 10px; color: var(--muted); font-size: 13px; }
 .context-filter.selected { color: inherit; background: var(--subtle); border-color: var(--border); }
 .context-filter:not(.selected):hover { background: var(--subtle); }
-.context-filter span { color: var(--muted); font-size: 10px; }
-.context-search { margin-top: 8px; font-size: 12px; }
-.context-results-count { color: var(--muted); font-size: 10px; margin-top: 10px; }
+.context-filter span { color: var(--muted); font-size: 12px; }
+.context-results-count { color: var(--muted); font-size: 12px; margin: 16px 0 5px; }
+.context-source-heading { min-width: 0; }
+.context-source-heading > .context-item-title { display: block; }
+.context-source-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.7; }
+.context-source-meta time { font-size: inherit; }
+.context-original-link { display: inline-block; font-size: 14px; line-height: 1.7; margin-top: 12px; }
 .context-show-more { margin-top: 20px; }
-.context-source { padding: 19px 0; border-bottom: 1px solid var(--border); }
-.context-source:last-child { border-bottom: 0; padding-bottom: 0; }
-.context-source-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: 10px; color: var(--muted); margin-bottom: 6px; }
-.context-source-meta time { font-size: 10px; margin-left: auto; }
-.context-source h3 a { color: inherit; }
-.context-source h3 a span { color: var(--muted); font-size: 12px; }
-.context-limits h2 { color: var(--muted); font-size: 13px; }
-.context-limits ul { margin: 12px 0 0; padding-left: 17px; }
-.context-limits li { color: var(--muted); font-size: 11px; line-height: 1.8; padding-left: 3px; }
-.context-limits li + li { margin-top: 5px; }
-@media (max-width: 1000px) {
+.context-collection-details { border-top: 1px solid var(--border); margin-top: 32px; }
+.context-collection-details > summary { display: flex; align-items: baseline; gap: 12px; cursor: pointer; list-style: none; color: var(--muted); padding: 20px 0; font-size: 14px; line-height: 1.7; }
+.context-collection-content { padding-bottom: 12px; }
+.context-collection-content > .context-section-note { margin: 0 0 24px; }
+.context-provider-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 20px; }
+.context-provider { border: 1px solid var(--border); border-radius: 8px; padding: 18px; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; }
+.context-provider-heading { display: flex; align-items: center; gap: 9px; }
+.context-provider-heading h3 { margin: 0; font-size: 14px; font-weight: 550; }
+.context-provider-mark { width: 24px; height: 24px; border: 1px solid var(--border); border-radius: 5px; display: grid; place-items: center; color: var(--muted); font-size: 12px; }
+.context-provider-count { font-size: 14px; line-height: 1.7; margin-top: 16px; font-weight: 500; }
+.context-provider > p, .context-provider-access > p { margin-top: 8px; font-size: 14px; color: var(--muted); line-height: 1.7; overflow-wrap: anywhere; }
+.context-coverage-label { color: var(--muted); font-size: 12px; margin: 10px 0 18px; }
+.context-provider-access { width: 100%; border-top: 1px solid var(--border); padding-top: 12px; margin-top: auto; }
+.context-access-label { display: block; color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+.context-access-status { display: block; font-size: 14px; }
+.context-access-status.available { color: light-dark(#29704d, #9accad); }
+.context-connect-link { display: inline-block; font-size: 14px; margin-top: 12px; line-height: 1.7; }
+.context-access-error { font-size: 14px; color: var(--danger); margin-top: 16px; line-height: 1.7; }
+.context-access-checked { color: var(--muted); font-size: 12px; line-height: 1.7; margin-top: 16px; }
+.context-access-checked time { font-size: inherit; }
+.context-limits { border-top: 1px solid var(--border); margin-top: 28px; padding-top: 22px; }
+.context-limits ul { margin: 12px 0 0; padding-left: 18px; }
+.context-limits li { color: var(--muted); font-size: 14px; line-height: 1.8; padding-left: 3px; }
+.context-limits li + li { margin-top: 8px; }
+@media (max-width: 1100px) {
   .context-provider-list { grid-template-columns: 1fr; }
-  .context-provider { padding: 16px; }
-  .context-provider-count { margin-top: 12px; }
 }
 @media (max-width: 720px) {
+  .context-tabs { gap: 22px; }
   .context-section-heading { flex-wrap: wrap; gap: 12px; }
-  .context-section { margin-top: 26px; padding-top: 22px; }
-  .context-filter { min-height: 40px; font-size: 12px; }
-  .context-source-meta time { margin-left: 0; width: 100%; }
-  .context-summary { font-size: 13px; }
-  .context-evidence a, .context-connect-link { display: inline-block; padding: 5px 0; }
+  .context-section { margin-top: 24px; padding-top: 22px; }
+  .context-disclosure > summary { gap: 9px; }
+  .context-item-meta { flex-shrink: 0; }
+  .context-disclosure-content { padding-left: 21px; }
+  .context-filter { min-height: 40px; }
+  .context-reference { gap: 10px; }
+  .context-reference-provider { align-self: center; }
+  .context-evidence a, .context-connect-link { display: inline-block; padding: 4px 0; }
 }

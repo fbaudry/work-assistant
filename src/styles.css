@@ -132,13 +132,13 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 }
 @media (max-width: 720px) {
   .web-app { flex-direction: column; }
-  .web-app .sidebar { width: 100%; flex: none; padding: 16px; border-right: 0; border-bottom: 1px solid var(--border); }
+  .web-app .sidebar { width: 100%; flex: none; padding: 12px 20px; border-right: 0; border-bottom: 1px solid var(--border); flex-direction: row; flex-wrap: wrap; align-items: center; gap: 4px; }
   .web-app .sidebar-titlebar { display: none; }
-  .web-app .brand { padding: 0 0 16px; }
+  .web-app .brand { padding: 0; margin-right: auto; }
   .web-app .main-nav { display: flex; gap: 6px; }
   .web-app .nav-item { width: auto; min-height: 44px; }
-  .web-app .sidebar-bottom { padding: 0; margin: 0; display: flex; align-items: center; justify-content: space-between; }
-  .web-app .version-label { margin: 0 8px; font-size: 11px; }
+  .web-app .sidebar-bottom { display: contents; }
+  .web-app .version-label { display: none; }
   .web-app .project-navigation { display: none; }
   .web-app .titlebar { padding: 0 20px; }
   .web-app .page { padding: 26px 20px; }

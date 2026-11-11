@@ -35,7 +35,11 @@ Le CLI `codex` doit être disponible dans le `PATH` du serveur. Si nécessaire, 
 
 Après connexion, l’app affiche les contextes présents dans le fichier privé `.work-assistant/context.json`. Ce fichier reste sur le poste et ne fait pas partie du dépôt : un clone neuf commence sans contexte importé. Son format est décrit par `ProjectContext` dans `src/SourceContext.tsx` et contrôlé côté serveur dans `server/project-context.mjs`.
 
-La vue **Sources** présente la couverture de Notion, Linear et Slack, un catalogue recherchable et les accès vérifiés dans la session OpenAI de Work Assistant. La vue **Synthèse** regroupe les décisions et les questions ouvertes, avec des liens vers leurs preuves. Les dates d’édition sont conservées ; une contradiction entre documents reste une question, pas une décision déduite de la seule date.
+La **Vue d’ensemble**, ouverte par défaut, présente l’objectif, un point de situation court, les premiers sujets à éclaircir et jusqu’à trois documents repères. Cette sélection de lecture ne constitue pas une priorité métier ni une demande d’approbation. Les textes sont rédigés pour comprendre le projet avant de consulter le détail.
+
+La vue **Décisions** propose des lignes dépliables avec les nuances et les preuves. **Sources** reste une bibliothèque recherchable : les résumés se déplient et les détails de connexion, couverture et limites restent dans une section secondaire. Les dates d’édition sont conservées ; une contradiction entre documents reste une question, pas une décision déduite de la seule date. Le champ optionnel `referenceSourceIds` désigne au maximum trois sources existantes à mettre en avant ; aucun document ni lien de projet n’est codé en dur dans l’interface.
+
+Cette organisation reprend le principe de la [vue projet de Linear](https://linear.app/docs/projects), avec un résumé et des ressources utiles, et la distinction entre accueil et catalogue des [wikis Notion](https://www.notion.com/help/wikis-and-verified-pages). Elle conserve les preuves à proximité des affirmations, sans inventer d’indicateur d’avancement à partir du volume collecté.
 
 L’import initial est effectué explicitement depuis la conversation et porte la mention **Collecte ponctuelle**. Il ne s’actualise pas automatiquement. Les connexions disponibles dans la conversation ne sont pas copiées dans l’app : celle-ci consulte son propre catalogue OpenAI et ses outils disponibles. Si une source n’y apparaît pas ou si la vérification échoue, l’interface le signale. Un lien de connexion n’est proposé que si OpenAI le fournit.
 
@@ -53,7 +57,7 @@ La [documentation des releases Mac](docs/releases.md) décrit la configuration i
 
 Les retours sur la version web se donnent dans la conversation de développement : décrire la page, ce qu’on voulait faire, ce qui gêne et le résultat attendu. Les modifications suivantes peuvent être examinées dans le même onglet.
 
-Le dépôt et les issues sont publics. Les données des projets restent dans le navigateur et ne font pas partie du dépôt. Le projet est personnel et indépendant de toute organisation.
+Le dépôt et les issues sont publics. Les notes restent dans le navigateur ; le contexte collecté reste dans le dossier privé de l’app sur ce Mac. Ces données ne font pas partie du dépôt. Le projet est personnel et indépendant de toute organisation.
 
 ## Distribution
 
