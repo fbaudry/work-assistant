@@ -17,6 +17,8 @@ async function fixture(t, { environment = {}, loginResult } = {}) {
     appPages: { '': { data: [], nextCursor: null } },
     installed: { apps: [] },
     metadata: { apps: [] },
+    thread: { thread: { id: 'summary-thread' }, model: 'account-default-model' },
+    turn: { turn: { id: 'summary-turn', status: 'inProgress', items: [] } },
   };
   const child = new EventEmitter();
   child.stdout = new PassThrough();
@@ -24,14 +26,19 @@ async function fixture(t, { environment = {}, loginResult } = {}) {
     write(chunk, _encoding, callback) {
       const message = JSON.parse(chunk.toString());
       commands.push(message);
-      if (message.id !== undefined) {
+      if (message.id !== undefined && message.method) {
         const result = message.method === 'account/read' ? state.account
           : message.method === 'account/login/start' ? state.login
             : message.method === 'app/list' ? state.appPages[message.params.cursor ?? '']
               : message.method === 'app/installed' ? state.installed
                 : message.method === 'app/read' ? state.metadata
+                  : message.method === 'thread/start' ? state.thread
+                    : message.method === 'turn/start' ? state.turn
             : {};
-        queueMicrotask(() => child.stdout.write(`${JSON.stringify({ id: message.id, result })}\n`));
+        queueMicrotask(() => {
+          child.stdout.write(`${JSON.stringify({ id: message.id, result })}\n`);
+          state.afterRequest?.(message);
+        });
       }
       callback();
     },
@@ -51,6 +58,7 @@ async function fixture(t, { environment = {}, loginResult } = {}) {
   return {
     auth, state, commands, launches, dataDirectory,
     notify(params) { child.stdout.write(`${JSON.stringify({ method: 'account/login/completed', params })}\n`); },
+    server(message) { child.stdout.write(`${JSON.stringify(message)}\n`); },
   };
 }
 
@@ -227,4 +235,90 @@ test('reads installed provider metadata without scanning the public app director
     appIds: ['connected-notion', 'connected-linear', 'connected-slack'], includeTools: false,
   });
   assert.doesNotMatch(JSON.stringify(sources), /unrelated|Private provider/);
+});
+
+test('project updates use an isolated ephemeral thread and return only its completed final answer', async (t) => {
+  const { auth, state, commands, server, dataDirectory } = await fixture(t);
+  const outputSchema = { type: 'object', properties: { summary: { type: 'string' } }, required: ['summary'], additionalProperties: false };
+  state.afterRequest = ({ method }) => {
+    if (method !== 'turn/start') return;
+    server({ method: 'item/completed', params: { threadId: 'another-thread', turnId: 'summary-turn', item: { type: 'agentMessage', phase: 'final_answer', text: 'Unrelated private content' } } });
+    server({ method: 'item/completed', params: { threadId: 'summary-thread', turnId: 'another-turn', item: { type: 'agentMessage', phase: 'final_answer', text: 'Earlier result' } } });
+    server({ method: 'item/completed', params: { threadId: 'summary-thread', turnId: 'summary-turn', item: { type: 'agentMessage', phase: 'commentary', text: 'Still working' } } });
+    server({ method: 'item/completed', params: { threadId: 'summary-thread', turnId: 'summary-turn', item: { type: 'agentMessage', phase: 'final_answer', text: '{"summary":"Le cadrage fictif avance."}' } } });
+    server({ method: 'turn/completed', params: { threadId: 'summary-thread', turn: { id: 'summary-turn', status: 'completed' } } });
+  };
+  assert.deepEqual(await auth.generateProjectUpdate({ prompt: 'Contexte fictif.', outputSchema }), {
+    text: '{"summary":"Le cadrage fictif avance."}', model: 'account-default-model',
+  });
+  const start = commands.find(({ method }) => method === 'thread/start').params;
+  assert.equal(start.ephemeral, true);
+  assert.equal(start.cwd, dataDirectory);
+  assert.deepEqual(start.environments, []);
+  assert.deepEqual(start.dynamicTools, []);
+  assert.deepEqual(start.runtimeWorkspaceRoots, []);
+  assert.equal(start.sandbox, 'read-only');
+  assert.equal(start.approvalPolicy, 'never');
+  assert.equal(start.config.web_search, 'disabled');
+  for (const name of ['shell_tool', 'apps', 'plugins', 'multi_agent', 'browser_use', 'computer_use', 'image_generation', 'hooks']) {
+    assert.equal(start.config['features.' + name], false);
+  }
+  assert.deepEqual(commands.find(({ method }) => method === 'turn/start').params, {
+    threadId: 'summary-thread', input: [{ type: 'text', text: 'Contexte fictif.' }], environments: [], effort: 'low', outputSchema,
+  });
+  assert.deepEqual(commands.find(({ method }) => method === 'thread/unsubscribe').params, { threadId: 'summary-thread' });
+});
+
+test('failed, interrupted and incomplete project turns cannot publish partial output or private errors', async (t) => {
+  for (const status of ['failed', 'interrupted', 'completed']) {
+    const { auth, state, server } = await fixture(t);
+    state.afterRequest = ({ method }) => {
+      if (method !== 'turn/start') return;
+      server({ method: 'item/completed', params: { threadId: 'summary-thread', turnId: 'summary-turn', item: { type: 'agentMessage', phase: 'commentary', text: 'Unfinished content' } } });
+      if (status !== 'completed') server({ method: 'item/completed', params: { threadId: 'summary-thread', turnId: 'summary-turn', item: { type: 'agentMessage', phase: 'final_answer', text: 'Unfinished final content' } } });
+      server({ method: 'turn/completed', params: { threadId: 'summary-thread', turn: { id: 'summary-turn', status, error: { message: 'Secret provider error' } } } });
+    };
+    await assert.rejects(auth.generateProjectUpdate({ prompt: 'Contexte fictif.', outputSchema: {} }), (error) => {
+      assert.doesNotMatch(error.message, /Secret|Unfinished/);
+      if (status === 'interrupted') assert.equal(error.name, 'AbortError');
+      return true;
+    });
+  }
+});
+
+test('abort stops a running project turn and releases its ephemeral thread', async (t) => {
+  const { auth, state, commands } = await fixture(t);
+  const controller = new AbortController();
+  state.afterRequest = ({ method }) => { if (method === 'turn/start') controller.abort(); };
+  await assert.rejects(auth.generateProjectUpdate({ prompt: 'Contexte fictif.', outputSchema: {}, signal: controller.signal }), { name: 'AbortError' });
+  assert.deepEqual(commands.find(({ method }) => method === 'turn/interrupt').params, { threadId: 'summary-thread', turnId: 'summary-turn' });
+  assert.deepEqual(commands.find(({ method }) => method === 'thread/unsubscribe').params, { threadId: 'summary-thread' });
+});
+
+test('timed-out project analysis is interrupted and never publishes a report', async (t) => {
+  const { auth, state, commands } = await fixture(t);
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  state.afterRequest = ({ method }) => { if (method === 'turn/start') t.mock.timers.tick(180000); };
+  await assert.rejects(auth.generateProjectUpdate({ prompt: 'Contexte fictif.', outputSchema: {} }), /trop de temps/);
+  assert.deepEqual(commands.find(({ method }) => method === 'turn/interrupt').params, { threadId: 'summary-thread', turnId: 'summary-turn' });
+  assert.deepEqual(commands.find(({ method }) => method === 'thread/unsubscribe').params, { threadId: 'summary-thread' });
+});
+
+test('unexpected server tool requests are rejected and cannot be confused with RPC replies', async (t) => {
+  const { auth, state, commands, server } = await fixture(t);
+  state.afterRequest = ({ method }) => {
+    if (method !== 'turn/start') return;
+    server({ id: 300, method: 'item/commandExecution/requestApproval', params: { threadId: 'summary-thread', turnId: 'summary-turn', command: 'private command' } });
+  };
+  await assert.rejects(auth.generateProjectUpdate({ prompt: 'Contexte fictif.', outputSchema: {} }), /action non autorisée/);
+  assert.deepEqual(commands.find(({ id }) => id === 300), {
+    id: 300, error: { code: -32601, message: 'Tool access is disabled for project updates.' },
+  });
+  assert.ok(commands.some(({ method }) => method === 'turn/interrupt'));
+});
+
+test('closing Codex rejects an active project update instead of leaving it pending', async (t) => {
+  const { auth, state } = await fixture(t);
+  state.afterRequest = ({ method }) => { if (method === 'turn/start') auth.close(); };
+  await assert.rejects(auth.generateProjectUpdate({ prompt: 'Contexte fictif.', outputSchema: {} }), /connexion locale/);
 });

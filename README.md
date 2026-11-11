@@ -2,7 +2,7 @@
 
 Espace de travail personnel, construit progressivement autour du travail avec l’IA.
 
-La priorité actuelle est une **app web locale** pour essayer l’interface dans le navigateur et l’améliorer à partir des retours. Elle permet de créer des projets, conserver leurs notes et consulter un contexte collecté depuis plusieurs sources. Les accès autonomes aux outils et les agents IA sont construits progressivement.
+La priorité actuelle est une **app web locale** pour essayer l’interface dans le navigateur et l’améliorer à partir des retours. Elle permet de créer des projets, conserver leurs notes, consulter un contexte collecté depuis plusieurs sources et obtenir des points d’un agent IA propre à chaque projet. La collecte autonome des sources reste à construire.
 
 ## Développement
 
@@ -21,11 +21,11 @@ npm run dev:desktop   # Ouvrir le socle Electron (macOS)
 npm run package:local # Compiler le socle Mac dans release/mac-arm64/
 ```
 
-La version web conserve les projets dans le stockage local du navigateur. Garder la même adresse et le même navigateur pour retrouver les notes. Elles ne sont pas synchronisées avec l’app Mac ; effacer les données du site les supprime. Aucun contenu local n’est envoyé automatiquement à une IA.
+La version web conserve les projets dans le stockage local du navigateur. Garder la même adresse et le même navigateur pour retrouver les notes. Elles ne sont pas synchronisées avec l’app Mac. Lorsqu’un projet est ouvert avec son agent actif, son contexte ou ses notes sont transmis à OpenAI via le compte connecté pour produire un point. Une copie des notes analysées et les comptes rendus sont conservés dans le dossier privé de l’app ; effacer les données du navigateur ne supprime pas cet historique local.
 
 ## Connexion OpenAI
 
-L’accueil web propose **Connecter mon compte OpenAI**. Le bouton ouvre la connexion officielle ChatGPT via Codex dans une autre fenêtre. Choisir son compte et son espace personnels, terminer la connexion chez OpenAI, puis revenir à Work Assistant. Les projets s’affichent après confirmation par Codex. La session prépare le travail avec l’IA ; les agents ne sont pas encore implémentés et aucun appel à un modèle n’est effectué.
+L’accueil web propose **Connecter mon compte OpenAI**. Le bouton ouvre la connexion officielle ChatGPT via Codex dans une autre fenêtre. Choisir son compte et son espace personnels, terminer la connexion chez OpenAI, puis revenir à Work Assistant. Les projets et leurs agents utilisent cette session après confirmation par Codex, sans clé API supplémentaire.
 
 Le serveur local utilise le [protocole officiel Codex app-server](https://learn.chatgpt.com/docs/app-server) pour l’authentification. Codex gère les jetons dans un dossier privé `.work-assistant/codex/`, exclu de Git et du packaging. Cette session est distincte de celle du CLI ou de l’application Codex : aucun compte déjà connecté n’est importé. Le navigateur ne reçoit aucun jeton et aucun mot de passe n’est saisi dans Work Assistant. Le dossier contient des identifiants et doit rester privé.
 
@@ -45,7 +45,17 @@ Cette organisation reprend le principe de la [vue projet de Linear](https://line
 
 L’import initial est effectué explicitement depuis la conversation et porte la mention **Collecte ponctuelle**. Il ne s’actualise pas automatiquement. Les connexions disponibles dans la conversation ne sont pas copiées dans l’app : celle-ci consulte son propre catalogue OpenAI et ses outils disponibles. Si une source n’y apparaît pas ou si la vérification échoue, l’interface le signale. Un lien de connexion n’est proposé que si OpenAI le fournit.
 
-L’API locale refuse les requêtes provenant d’un autre site. Les lectures du contexte et des accès nécessitent un compte connecté ; les fichiers privés sont interdits via le serveur de fichiers Vite. Aucune écriture n’est effectuée dans les sources externes. La synchronisation continue et le travail des agents restent à implémenter.
+L’API locale refuse les requêtes provenant d’un autre site. Les lectures du contexte et des accès nécessitent un compte connecté ; les fichiers privés sont interdits via le serveur de fichiers Vite. Aucune écriture n’est effectuée dans les sources externes.
+
+## Agent de projet
+
+Une carte **Agent du projet** reste visible avant les onglets. L’agent fait un premier point à l’ouverture, puis en produit un nouveau lorsque le contexte local change. **Faire un point** permet de relancer explicitement une analyse ; **Mettre en pause** interrompt l’analyse en cours et conserve le dernier résultat. Le statut affiché correspond à l’exécution réelle et un échec ne remplace pas le précédent compte rendu.
+
+Les projets déjà ouverts sont vérifiés toutes les 30 secondes tant que Work Assistant envoie son signal de présence, y compris depuis la liste des projets ou les réglages. Après 90 secondes sans ce signal, aucune nouvelle analyse automatique n’est démarrée. Le Mac en veille ne fait pas tourner le serveur local. Une analyse déjà envoyée à OpenAI peut finir après fermeture de l’onglet. Aucun service distant de planification n’est créé.
+
+Chaque point contient une synthèse, au plus trois observations avec leurs sources et une prochaine action proposée. Les cinq derniers points et l’état de pause sont conservés dans `.work-assistant/agents.json`. Le modèle par défaut du compte est utilisé avec un effort faible. Le [protocole Codex app-server](https://learn.chatgpt.com/docs/app-server) exécute un thread éphémère sans environnement ni outils ; les demandes d’action sont refusées. Seul le résultat structuré d’un tour terminé est accepté, avec des références vérifiées contre le contexte fourni.
+
+L’agent analyse le **contexte déjà collecté** ou les notes locales. Il ne surveille pas encore directement Notion, Linear, Slack, GitHub ou les déploiements et ne leur apporte aucune modification. Ses analyses sont des propositions à relire. Le socle Mac ne dispose pas encore de ce serveur d’agents.
 
 ## Vérification et distribution
 

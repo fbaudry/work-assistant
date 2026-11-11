@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import ProjectProgress from './ProjectProgress';
+import ProjectAgent from './ProjectAgent';
 import './source-context.css';
 
 type Provider = 'notion' | 'linear' | 'slack';
@@ -134,6 +135,8 @@ export default function SourceContext({ project }: { project: ProjectContext }) 
           {project.coverage.some((item) => !item.complete) ? 'Collecte partielle' : 'Collecte ponctuelle'}
         </p>
       </header>
+
+      <ProjectAgent project={project} />
 
       <nav className="tabs context-tabs" aria-label="Vues du projet">
         <button className={tab === 'overview' ? 'tab active' : 'tab'} aria-current={tab === 'overview' ? 'page' : undefined} onClick={() => setTab('overview')}>Vue d’ensemble</button>

@@ -1,0 +1,48 @@
+.project-agent { margin: 22px 0 20px; padding: 17px 19px 14px; border: 1px solid light-dark(#dedcf3, #454157); border-radius: 10px; background: light-dark(#faf9ff, #22212b); }
+.agent-heading { display: flex; align-items: center; gap: 9px; }
+.agent-symbol { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 7px; background: light-dark(#eeecff, #37314e); color: var(--accent); font-size: 17px; }
+.agent-heading h2 { font-size: 14px; font-weight: 600; margin: 0; }
+.agent-state { margin-left: auto; display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.agent-state > span { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.is-running .agent-state { color: var(--accent); }
+.agent-state.has-error, .agent-error { color: var(--danger); }
+.agent-error { margin-top: 12px; font-size: 13px; line-height: 1.6; }
+.agent-latest h3 { margin: 13px 0 0; font-size: 16px; line-height: 1.5; font-weight: 550; overflow-wrap: anywhere; }
+.agent-summary { margin-top: 5px; font-size: 13px; line-height: 1.7; color: var(--muted); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+.agent-empty { font-size: 13px; line-height: 1.7; color: var(--muted); margin-top: 12px; max-width: 700px; }
+.agent-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; margin-top: 13px; }
+.agent-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.agent-run-button { border: 1px solid light-dark(#dcd8f7, #50496a); border-radius: 5px; background: light-dark(#efedfc, #353046); color: var(--accent); font-size: 12px; padding: 6px 10px; min-height: 30px; }
+.agent-run-button:hover:not(:disabled) { background: light-dark(#e6e2fa, #403852); }
+.agent-pause-button { border: 0; padding: 6px 0; background: transparent; color: var(--muted); font-size: 12px; min-height: 30px; }
+.agent-pause-button:hover:not(:disabled) { text-decoration: underline; text-underline-offset: 3px; }
+.agent-report-date { color: var(--muted); font-size: 11px; line-height: 1.5; }
+.agent-report-date time, .agent-context-date time { font-size: inherit; }
+.agent-scope { color: var(--muted); font-size: 11px; line-height: 1.6; margin-top: 10px; }
+.agent-report-details { margin-top: 10px; }
+.agent-report-details > summary { color: var(--accent); font-size: 12px; cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; padding: 3px 0; width: fit-content; }
+.agent-report-details > summary::-webkit-details-marker { display: none; }
+.agent-report-details > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+.agent-report-details[open] > summary > span { transform: rotate(180deg); }
+.agent-report-body { border-top: 1px solid var(--border); padding-top: 14px; margin-top: 12px; }
+.agent-full-summary { font-size: 13px; line-height: 1.7; }
+.agent-updates { margin: 16px 0 0; padding: 0; list-style: none; display: grid; gap: 17px; }
+.agent-update-kind { display: inline-block; color: var(--muted); font-size: 11px; margin-bottom: 5px; }
+.agent-update-kind.attention, .agent-update-kind.decision { color: var(--accent); }
+.agent-report-body h4 { font-size: 13px; line-height: 1.6; font-weight: 600; margin: 0; }
+.agent-updates > li > p, .agent-next-action > p { font-size: 13px; line-height: 1.75; margin-top: 4px; white-space: pre-line; overflow-wrap: anywhere; }
+.agent-evidence { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 6px 15px; }
+.agent-evidence a { font-size: 12px; line-height: 1.7; color: var(--accent); text-decoration: none; overflow-wrap: anywhere; }
+.agent-evidence a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.agent-evidence a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.agent-next-action { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
+.agent-context-date { color: var(--muted); font-size: 11px; line-height: 1.7; margin-top: 15px; overflow-wrap: anywhere; }
+.project-agent + .context-tabs { margin-top: 0; }
+@media (max-width: 720px) {
+  .project-agent { padding: 15px 15px 12px; }
+  .agent-footer { gap: 7px 12px; }
+}
+@media (max-width: 440px) {
+  .agent-heading { flex-wrap: wrap; }
+  .agent-state { margin-left: 33px; flex-basis: 100%; }
+}

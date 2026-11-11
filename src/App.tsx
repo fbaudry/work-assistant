@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import type { UpdateState } from './bridge';
 import OpenAIConnection from './OpenAIConnection';
 import SourceContext, { type ProjectContext } from './SourceContext';
+import ProjectAgent from './ProjectAgent';
 
 type Project = {
   id: string;
@@ -59,20 +60,38 @@ export default function App() {
     if (desktop || !openAIConnected) return;
     const controller = new AbortController();
     setContextLoading(true);
-    fetch('/api/context', { cache: 'no-store', signal: controller.signal })
-      .then(async (response) => {
+    let firstLoad = true;
+    let reading = false;
+    async function refreshContext() {
+      if (reading) return;
+      reading = true;
+      try {
+        const response = await fetch('/api/context', { cache: 'no-store', signal: controller.signal });
         if (!response.ok) throw new Error('Context unavailable');
         const data: { projects: ProjectContext[] } = await response.json();
         if (controller.signal.aborted) return;
         setContexts(data.projects);
-        if (data.projects.length) {
+        setContextError('');
+        // Keep already activated project agents available throughout the app,
+        // including while the user is on the project list or settings screen.
+        void fetch('/api/agents/heartbeat', {
+          method: 'POST', headers: { 'X-Work-Assistant': '1' }, signal: controller.signal,
+        }).catch(() => {});
+        if (firstLoad && data.projects.length) {
           setContextId(data.projects[0].id);
           setScreen('context');
         }
-      })
-      .catch(() => { if (!controller.signal.aborted) setContextError('Le contexte collecté n’a pas pu être chargé. Recharge la page pour réessayer.'); })
-      .finally(() => { if (!controller.signal.aborted) setContextLoading(false); });
-    return () => controller.abort();
+        firstLoad = false;
+      } catch {
+        if (!controller.signal.aborted) setContextError('Le contexte collecté n’a pas pu être actualisé. Les informations affichées peuvent dater.');
+      } finally {
+        reading = false;
+        if (!controller.signal.aborted) setContextLoading(false);
+      }
+    }
+    void refreshContext();
+    const timer = window.setInterval(refreshContext, 30000);
+    return () => { controller.abort(); window.clearInterval(timer); };
   }, [desktop, openAIConnected]);
 
   useEffect(() => {
@@ -214,12 +233,17 @@ export default function App() {
             <div className="page-heading"><div><h1>Projets</h1><p className="page-description">{contexts.length ? 'Tes projets et leur contexte, réunis au même endroit.' : `Tes espaces de travail, conservés ${storageLocation}.`}</p></div><button className="primary-button" onClick={() => setCreating(true)} disabled={Boolean(initial.error)}>+ Nouveau projet</button></div>
             {contexts.length > 0 && <div className="project-list">{contexts.map((item) => <button key={item.id} className="project-row" onClick={() => { setContextId(item.id); setScreen('context'); }}><span className="project-row-name"><span className="folder-symbol" aria-hidden="true">▱</span><span><strong>{item.name}</strong><span className="project-objective-preview">Contexte collecté · Notion, Linear et Slack</span></span></span><time dateTime={item.collectedAt}>{dateFormat.format(new Date(item.collectedAt))}</time></button>)}</div>}
             {projects.length === 0 && contexts.length === 0 ? <div className="empty-state"><div className="empty-symbol" aria-hidden="true">▦</div><h2>Commençons par un projet</h2><p>Donne-lui un nom, pose ton objectif et rassemble tes premières notes.</p><button className="secondary-button" onClick={() => setCreating(true)} disabled={Boolean(initial.error)}>Créer mon premier projet</button></div> : projects.length > 0 && <div className="project-list"><div className="list-heading"><span>Nom</span><span>Dernière modification</span></div>{projects.map((item) => <button key={item.id} className="project-row" onClick={() => openProject(item.id)}><span className="project-row-name"><span className="folder-symbol" aria-hidden="true">▱</span><span><strong>{item.name}</strong><span className="project-objective-preview">{item.objective || 'Aucun objectif renseigné'}</span></span></span><time dateTime={item.updatedAt}>{dateFormat.format(new Date(item.updatedAt))}</time></button>)}</div>}
-            <div className="first-version-note"><span className="small-label">Première version</span><p>Les projets et notes sont disponibles. Les connexions aux outils et le travail avec l’IA seront ajoutés progressivement.</p></div>
+            <div className="first-version-note"><span className="small-label">Première version</span><p>{desktop ? 'Les projets et notes sont disponibles. Les connexions aux outils et le travail avec l’IA seront ajoutés progressivement.' : 'Chaque projet dispose d’un agent pour faire le point sur son contexte. La collecte des sources externes reste ponctuelle.'}</p></div>
           </section>}
 
           {screen === 'projects' && !creating && project && <section className="project-page">
-            <div className="project-header"><h1>{project.name}</h1><p className="page-description">{project.objective || 'Ajoute tes idées dans les notes pour commencer.'}</p><nav className="tabs" aria-label="Contenu du projet"><button aria-current={tab === 'notes' ? 'page' : undefined} className={tab === 'notes' ? 'tab active' : 'tab'} onClick={() => setTab('notes')}>Notes</button><button aria-current={tab === 'context' ? 'page' : undefined} className={tab === 'context' ? 'tab active' : 'tab'} onClick={() => setTab('context')}>Sources</button></nav></div>
-            {tab === 'notes' ? <div className="notes-page"><div className="notes-heading"><label htmlFor="project-notes">Notes du projet</label><span aria-live="polite" className={saveError ? 'save-status has-error' : 'save-status'}>{saveError ? 'Non enregistré' : `Enregistré ${storageLocation}`}</span></div><textarea id="project-notes" className="notes-editor" value={project.notes} placeholder="Contexte, décisions, prochaines étapes…" onChange={(event) => saveProjects(projects.map((item) => item.id === project.id ? { ...item, notes: event.target.value, updatedAt: new Date().toISOString() } : item))} /><p className="editor-footnote">Ces notes restent locales. Elles ne sont pas envoyées à une IA.</p></div> : <div className="sources-page"><h2>Le contexte du projet</h2><p className="section-description">Les connexions seront ajoutées au fil des prochaines versions. Aucune donnée n’est synchronisée pour le moment.</p><div className="source-list">{[['Notion', 'Pages, spécifications et comptes rendus'], ['Linear', 'Tickets et commentaires'], ['Slack', 'Conversations du projet'], ['GitHub', 'Pull requests, revues et actions']].map(([label, description]) => <div className="source-row" key={label}><div><strong>{label}</strong><p>{description}</p></div><span className="status-label">Non connecté</span></div>)}</div></div>}
+            <div className="project-header">
+              <h1>{project.name}</h1>
+              <p className="page-description">{project.objective || 'Ajoute tes idées dans les notes pour commencer.'}</p>
+              {!desktop && <ProjectAgent key={project.id} project={project} />}
+              <nav className="tabs" aria-label="Contenu du projet"><button aria-current={tab === 'notes' ? 'page' : undefined} className={tab === 'notes' ? 'tab active' : 'tab'} onClick={() => setTab('notes')}>Notes</button><button aria-current={tab === 'context' ? 'page' : undefined} className={tab === 'context' ? 'tab active' : 'tab'} onClick={() => setTab('context')}>Sources</button></nav>
+            </div>
+            {tab === 'notes' ? <div className="notes-page"><div className="notes-heading"><label htmlFor="project-notes">Notes du projet</label><span aria-live="polite" className={saveError ? 'save-status has-error' : 'save-status'}>{saveError ? 'Non enregistré' : `Enregistré ${storageLocation}`}</span></div><textarea id="project-notes" className="notes-editor" value={project.notes} placeholder="Contexte, décisions, prochaines étapes…" onChange={(event) => saveProjects(projects.map((item) => item.id === project.id ? { ...item, notes: event.target.value, updatedAt: new Date().toISOString() } : item))} /><p className="editor-footnote">{desktop ? 'Ces notes restent locales. Elles ne sont pas envoyées à une IA.' : 'L’agent s’appuie sur ces notes pour ses points, avec ton compte OpenAI. Tu peux mettre son suivi en pause.'}</p></div> : <div className="sources-page"><h2>Le contexte du projet</h2><p className="section-description">Les connexions seront ajoutées au fil des prochaines versions. Aucune donnée n’est synchronisée pour le moment.</p><div className="source-list">{[['Notion', 'Pages, spécifications et comptes rendus'], ['Linear', 'Tickets et commentaires'], ['Slack', 'Conversations du projet'], ['GitHub', 'Pull requests, revues et actions']].map(([label, description]) => <div className="source-row" key={label}><div><strong>{label}</strong><p>{description}</p></div><span className="status-label">Non connecté</span></div>)}</div></div>}
           </section>}
 
           {screen === 'activity' && <section className="page"><h1>Activité</h1><p className="page-description">Les dernières modifications de tes projets locaux.</p>{projects.length === 0 ? <div className="empty-state"><div className="empty-symbol" aria-hidden="true">◷</div><h2>Aucune activité pour le moment</h2><p>Les projets que tu crées et modifies apparaîtront ici.</p><button className="secondary-button" onClick={() => { setScreen('projects'); setCreating(true); }} disabled={Boolean(initial.error)}>Créer un projet</button></div> : <div className="activity-list">{[...projects].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).map((item) => <button className="activity-row" key={item.id} onClick={() => openProject(item.id)}><span className="activity-marker" aria-hidden="true" /><span><strong>{item.name}</strong><span>{item.createdAt === item.updatedAt ? 'Projet créé' : 'Notes modifiées'}</span></span><time dateTime={item.updatedAt}>{dateFormat.format(new Date(item.updatedAt))}</time></button>)}</div>}</section>}
