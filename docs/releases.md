@@ -1,8 +1,10 @@
 # Activer les mises à jour macOS
 
+> Configuration initiale conservée, inactive. Le développement se concentre actuellement sur l’app web locale. Les jobs Mac ne sont exécutés que manuellement avec l’option `build_mac`. Cette configuration utilise encore la piste Developer ID ; l’alternative avec certificat personnel auto-signé a été étudiée mais n’a pas été implémentée ni validée de bout en bout.
+
 ## Configuration initiale
 
-Utiliser une identité Apple Developer autorisée pour cette application personnelle publique. Le certificat requis est **Developer ID Application**. Un certificat « Apple Development » ou « Mac App Distribution » ne convient pas pour cette distribution hors App Store.
+Utiliser exclusivement une identité personnelle pour cette application. Aucun compte, accès ou certificat d’une entreprise ne doit être associé au projet. Dans cette configuration initiale, le certificat requis est **Developer ID Application**. Un certificat « Apple Development » ou « Mac App Distribution » ne convient pas pour cette distribution hors App Store.
 
 1. Créer le certificat dans [Apple Developer → Certificates](https://developer.apple.com/account/resources/certificates/list). Le portail décrit la création de la demande de certificat dans Trousseaux d’accès.
 2. Installer le certificat sur le Mac qui a créé la demande. Dans Trousseaux d’accès, exporter le certificat avec sa clé privée au format `.p12`, protégé par mot de passe.
@@ -30,7 +32,7 @@ gh secret set APPLE_TEAM_ID --repo fbaudry/work-assistant
 Les commandes sans valeur ouvrent une saisie interactive. Ne jamais ajouter les clés ou mots de passe au dépôt, ni à une issue ou à une conversation.
 
 5. Dans [Actions variables](https://github.com/fbaudry/work-assistant/settings/variables/actions), créer `MAC_RELEASES_ENABLED` avec la valeur `true`.
-6. Lancer **Build and release → Run workflow** sur `main`, ou pousser un commit.
+6. Lancer **Build and release → Run workflow** sur `main`, avec `build_mac` activé.
 
 Le workflow vérifie les cinq secrets avant de construire. Il impose la signature, effectue la notarisation puis vérifie le bundle avec `codesign`, `spctl` et `stapler`. Il publie la release seulement après l’upload de tous les fichiers.
 
@@ -38,7 +40,7 @@ Le workflow vérifie les cinq secrets avant de construire. Il impose la signatur
 
 1. Installer le DMG de la première alpha depuis [Releases](https://github.com/fbaudry/work-assistant/releases), puis déplacer Work Assistant dans Applications.
 2. Créer un projet et une note.
-3. Pousser une petite évolution sur `main` et attendre sa publication.
+3. Pousser une petite évolution sur `main`, lancer le workflow manuel avec `build_mac` puis attendre sa publication.
 4. Dans l’app, ouvrir Réglages, rechercher la mise à jour et attendre son téléchargement.
 5. Cliquer sur **Redémarrer et mettre à jour**.
 6. Vérifier la nouvelle version et la présence du projet et de la note.

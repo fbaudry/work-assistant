@@ -4,6 +4,11 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+    inputs:
+      build_mac:
+        description: Build the macOS app (web development is the current default)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -22,7 +27,7 @@ jobs:
 
   mac-preview:
     needs: verify
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.MAC_RELEASES_ENABLED != 'true'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.build_mac && vars.MAC_RELEASES_ENABLED != 'true'
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v7.0.1
@@ -46,7 +51,7 @@ jobs:
     concurrency:
       group: mac-release
       cancel-in-progress: false
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.MAC_RELEASES_ENABLED == 'true'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.build_mac && vars.MAC_RELEASES_ENABLED == 'true'
     runs-on: macos-15
     permissions:
       contents: write

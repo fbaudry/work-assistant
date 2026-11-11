@@ -22,6 +22,9 @@ button { color: inherit; cursor: pointer; }
 button:disabled { opacity: .5; cursor: default; }
 button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 button { -webkit-app-region: no-drag; }
+.web-app .sidebar-titlebar { height: 24px; }
+.web-app .titlebar { -webkit-app-region: no-drag; }
+.preview-label { font-size: 11px; }
 h1, h2, p { margin: 0; }
 h1 { font-size: 25px; letter-spacing: -.6px; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
 h2 { font-size: 16px; font-weight: 600; letter-spacing: -.15px; }
@@ -66,6 +69,7 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -.15px; }
 .project-row { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 24px; padding: 19px 12px; border: 0; border-bottom: 1px solid var(--border); background: transparent; text-align: left; }
 .project-row:hover, .activity-row:hover { background: var(--subtle); }
 .project-row-name { display: flex; align-items: center; gap: 13px; min-width: 0; }
+.project-row-name > span:last-child { min-width: 0; }
 .project-row strong { display: block; font-size: 13px; font-weight: 500; overflow-wrap: anywhere; }
 .project-objective-preview { display: block; color: var(--muted); font-size: 12px; margin-top: 5px; max-width: 440px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .folder-symbol { color: var(--accent); font-size: 25px; }
@@ -100,6 +104,7 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 .activity-list { margin-top: 30px; }
 .activity-row { display: flex; width: 100%; border: 0; border-bottom: 1px solid var(--border); background: transparent; padding: 20px 8px; text-align: left; gap: 14px; align-items: center; }
 .activity-row strong { display: block; font-size: 13px; font-weight: 500; overflow-wrap: anywhere; }
+.activity-row > span { min-width: 0; }
 .activity-row span span { display: block; font-size: 12px; color: var(--muted); margin-top: 6px; }
 .activity-row time { margin-left: auto; }
 .activity-marker { width: 7px; height: 7px; border: 1px solid var(--muted); border-radius: 50%; flex-shrink: 0; }
@@ -124,4 +129,31 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
   .notes-page, .sources-page { padding: 26px 28px; }
   .project-objective-preview { max-width: 250px; }
   .first-version-note { flex-direction: column; gap: 8px; }
+}
+@media (max-width: 720px) {
+  .web-app { flex-direction: column; }
+  .web-app .sidebar { width: 100%; flex: none; padding: 16px; border-right: 0; border-bottom: 1px solid var(--border); }
+  .web-app .sidebar-titlebar { display: none; }
+  .web-app .brand { padding: 0 0 16px; }
+  .web-app .main-nav { display: flex; gap: 6px; }
+  .web-app .nav-item { width: auto; min-height: 44px; }
+  .web-app .sidebar-bottom { padding: 0; margin: 0; display: flex; align-items: center; justify-content: space-between; }
+  .web-app .version-label { margin: 0 8px; font-size: 11px; }
+  .web-app .project-navigation { display: none; }
+  .web-app .titlebar { padding: 0 20px; }
+  .web-app .page { padding: 26px 20px; }
+  .web-app .page-heading { flex-wrap: wrap; gap: 16px; }
+  .web-app .primary-button, .web-app .secondary-button { white-space: normal; min-height: 44px; }
+  .web-app .empty-state { padding: 28px 0; min-height: 280px; }
+  .web-app .project-row { align-items: flex-start; flex-direction: column; gap: 10px; }
+  .web-app .project-objective-preview { white-space: normal; max-width: none; }
+  .web-app .list-heading > span:last-child { display: none; }
+  .web-app .project-header { padding: 26px 20px 0; }
+  .web-app .notes-page, .web-app .sources-page { padding: 24px 20px; }
+  .web-app .notes-heading, .web-app .source-row { flex-wrap: wrap; gap: 10px; }
+  .web-app .form-actions { flex-wrap: wrap; }
+  .web-app .activity-row { flex-wrap: wrap; }
+  .web-app .activity-row time { width: 100%; margin-left: 21px; }
+  .web-app .app-details > div { flex-wrap: wrap; gap: 8px; }
+  .web-app input, .web-app textarea { font-size: 16px; }
 }

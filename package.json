@@ -12,7 +12,8 @@
   "distribution": "local",
   "repository": { "type": "git", "url": "https://github.com/fbaudry/work-assistant.git" },
   "scripts": {
-    "dev": "node scripts/dev.mjs",
+    "dev": "vite --host 127.0.0.1 --port 5173 --strictPort",
+    "dev:desktop": "node scripts/dev.mjs",
     "typecheck": "tsc --noEmit",
     "test": "node --test electron/*.test.cjs scripts/*.test.mjs",
     "build": "npm run typecheck && vite build",

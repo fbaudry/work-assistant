@@ -1,5 +1,7 @@
 # Première version de Work Assistant
 
+> Historique du premier lot Mac. La priorité est désormais une app web locale : voir le README. Les mises à jour et le packaging Mac sont en attente, sans aucun accès Apple associé.
+
 ## Objectif
 
 Installer une application macOS une fois, puis recevoir les évolutions depuis les versions publiques GitHub. Construire le produit et son interface par petits incréments à partir des retours de Florian.
