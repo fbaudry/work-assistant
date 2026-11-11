@@ -14,6 +14,9 @@ async function fixture(t, { environment = {}, loginResult } = {}) {
   const state = {
     account: { account: null },
     login: loginResult ?? { type: 'chatgpt', loginId: 'login-test', authUrl: 'https://auth.openai.com/authorize?state=test' },
+    appPages: { '': { data: [], nextCursor: null } },
+    installed: { apps: [] },
+    metadata: { apps: [] },
   };
   const child = new EventEmitter();
   child.stdout = new PassThrough();
@@ -24,6 +27,9 @@ async function fixture(t, { environment = {}, loginResult } = {}) {
       if (message.id !== undefined) {
         const result = message.method === 'account/read' ? state.account
           : message.method === 'account/login/start' ? state.login
+            : message.method === 'app/list' ? state.appPages[message.params.cursor ?? '']
+              : message.method === 'app/installed' ? state.installed
+                : message.method === 'app/read' ? state.metadata
             : {};
         queueMicrotask(() => child.stdout.write(`${JSON.stringify({ id: message.id, result })}\n`));
       }
@@ -49,7 +55,7 @@ async function fixture(t, { environment = {}, loginResult } = {}) {
 }
 
 test('launches an isolated Codex process without inheriting credentials or thread context', async (t) => {
-  const { auth, launches, dataDirectory } = await fixture(t, { environment: {
+  const { auth, launches, commands, dataDirectory } = await fixture(t, { environment: {
     PATH: '/test/bin', HOME: '/test/home', USER: 'test-user', LANG: 'fr_FR.UTF-8',
     CODEX_HOME: '/existing/codex', CODEX_THREAD_ID: 'existing-thread',
     OPENAI_API_KEY: 'secret-api-key', OPENAI_BASE_URL: 'https://other.example',
@@ -68,6 +74,7 @@ test('launches an isolated Codex process without inheriting credentials or threa
     stdio: ['pipe', 'pipe', 'ignore'],
   });
   assert.equal((await stat(dataDirectory)).mode & 0o777, 0o700);
+  assert.deepEqual(commands.find((command) => command.method === 'initialize').params.capabilities, { experimentalApi: true });
 });
 
 test('returns only public ChatGPT account fields, never tokens from the RPC payload', async (t) => {
@@ -137,3 +144,87 @@ for (const [name, authUrl, type] of [
     assert.deepEqual(await auth.account(), { status: 'disconnected' });
   });
 }
+
+test('source discovery follows pagination and exposes only the three selected providers', async (t) => {
+  const { auth, state, commands } = await fixture(t);
+  state.appPages = {
+    '': { data: [
+      { id: 'app-notion', name: 'Notion', isAccessible: true, isEnabled: true, installUrl: 'https://chatgpt.com/apps/notion/app-notion', token: 'secret' },
+      { id: 'app-unrelated', name: 'Unrelated private provider', isAccessible: true, isEnabled: true },
+    ], nextCursor: 'page-two' },
+    'page-two': { data: [
+      { id: 'app-linear', name: 'Linear', isAccessible: false, isEnabled: true, installUrl: 'https://chatgpt.com/apps/linear/app-linear' },
+      { id: 'app-slack', name: 'Slack', isAccessible: true, isEnabled: true, installUrl: 'https://chatgpt.com/apps/slack/app-slack' },
+    ], nextCursor: null },
+  };
+  state.installed = { apps: [
+    { id: 'app-notion', enabled: true, callable: true },
+    { id: 'app-slack', enabled: true, callable: false },
+  ] };
+  const result = await auth.sources();
+  assert.deepEqual(result.sources.map(({ provider, id, status, installUrl }) => ({ provider, id, status, installUrl })), [
+    { provider: 'notion', id: 'app-notion', status: 'available', installUrl: 'https://chatgpt.com/apps/notion/app-notion' },
+    { provider: 'linear', id: 'app-linear', status: 'not_connected', installUrl: 'https://chatgpt.com/apps/linear/app-linear' },
+    { provider: 'slack', id: 'app-slack', status: 'unavailable', installUrl: 'https://chatgpt.com/apps/slack/app-slack' },
+  ]);
+  assert.ok(Number.isFinite(Date.parse(result.checkedAt)));
+  assert.doesNotMatch(JSON.stringify(result), /secret|Unrelated|app-unrelated/);
+  assert.deepEqual(commands.filter(({ method }) => method === 'app/list').map(({ params }) => params), [
+    { cursor: null, limit: 100, forceRefetch: true },
+    { cursor: 'page-two', limit: 100, forceRefetch: false },
+  ]);
+  assert.deepEqual(commands.find(({ method }) => method === 'app/installed').params, { forceRefresh: true });
+});
+
+test('a broken paginated source inventory is unavailable rather than disconnected', async (t) => {
+  const { auth, state, commands } = await fixture(t);
+  state.appPages = {
+    '': { data: [], nextCursor: 'repeated' },
+    repeated: { data: [], nextCursor: 'repeated' },
+  };
+  const result = await auth.sources();
+  assert.deepEqual(result.sources.map(({ provider, status }) => ({ provider, status })), [
+    { provider: 'notion', status: 'unavailable' },
+    { provider: 'linear', status: 'unavailable' },
+    { provider: 'slack', status: 'unavailable' },
+  ]);
+  assert.equal(commands.filter(({ method }) => method === 'app/list').length, 2);
+  assert.doesNotMatch(JSON.stringify(result), /Invalid app pagination/);
+});
+
+test('keeps official connection links when runtime availability cannot be verified', async (t) => {
+  const { auth, state } = await fixture(t);
+  state.appPages = { '': { data: [
+    { id: 'notion', name: 'Notion', isAccessible: true, isEnabled: true, installUrl: 'https://chatgpt.com/apps/notion/notion' },
+  ], nextCursor: null } };
+  state.installed = { unexpected: 'private response details' };
+  const { sources } = await auth.sources();
+  assert.equal(sources[0].status, 'unavailable');
+  assert.equal(sources[0].installUrl, 'https://chatgpt.com/apps/notion/notion');
+  assert.doesNotMatch(JSON.stringify(sources), /private response details/);
+});
+
+test('reads installed provider metadata without scanning the public app directory', async (t) => {
+  const { auth, state, commands } = await fixture(t);
+  state.installed = { apps: [
+    { id: 'connected-notion', runtimeName: 'Notion', enabled: true, callable: true },
+    { id: 'connected-linear', runtimeName: 'Linear', enabled: true, callable: true },
+    { id: 'connected-slack', runtimeName: 'Slack', enabled: true, callable: true },
+    { id: 'unrelated', runtimeName: 'Private provider', enabled: true, callable: true },
+  ] };
+  state.metadata = { apps: [
+    { id: 'connected-notion', name: 'Notion', installUrl: 'https://chatgpt.com/apps/notion/connected-notion' },
+  ] };
+  const { sources } = await auth.sources();
+  assert.deepEqual(sources.map(({ provider, status }) => ({ provider, status })), [
+    { provider: 'notion', status: 'available' },
+    { provider: 'linear', status: 'available' },
+    { provider: 'slack', status: 'available' },
+  ]);
+  assert.equal(sources[0].installUrl, 'https://chatgpt.com/apps/notion/connected-notion');
+  assert.equal(commands.some(({ method }) => method === 'app/list'), false);
+  assert.deepEqual(commands.find(({ method }) => method === 'app/read').params, {
+    appIds: ['connected-notion', 'connected-linear', 'connected-slack'], includeTools: false,
+  });
+  assert.doesNotMatch(JSON.stringify(sources), /unrelated|Private provider/);
+});

@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import { mkdir, chmod } from 'node:fs/promises';
 import { createInterface } from 'node:readline';
+import { projectSources } from './project-sources.mjs';
 
 export class ConnectionError extends Error {}
 
@@ -15,13 +16,13 @@ export function createCodexAuth({ dataDirectory, launch = spawn, environment = p
   let loginError;
   const pending = new Map();
 
-  function request(method, params) {
+  function request(method, params, timeoutMs = 20000) {
     return new Promise((resolve, reject) => {
       const id = ++nextId;
       const timer = setTimeout(() => {
         pending.delete(id);
         reject(new ConnectionError('Codex ne répond pas. Relance Work Assistant puis réessaie.'));
-      }, 20000);
+      }, timeoutMs);
       pending.set(id, { resolve, reject, timer });
       child.stdin.write(`${JSON.stringify({ id, method, params })}\n`, (error) => {
         if (!error) return;
@@ -84,7 +85,7 @@ export function createCodexAuth({ dataDirectory, launch = spawn, environment = p
       process.on('exit', () => stopped());
       await request('initialize', {
         clientInfo: { name: 'work_assistant', title: 'Work Assistant', version: '0.1.0' },
-        capabilities: null,
+        capabilities: { experimentalApi: true },
       });
       process.stdin.write(`${JSON.stringify({ method: 'initialized' })}\n`);
     })();
@@ -140,5 +141,43 @@ export function createCodexAuth({ dataDirectory, launch = spawn, environment = p
     return account();
   }
 
-  return { account, startLogin, cancelLogin, close() { child?.kill(); } };
+  async function sources() {
+    await ensureStarted();
+    async function listApps() {
+      const apps = [];
+      const cursors = new Set();
+      let cursor = null;
+      do {
+        const result = await request('app/list', { cursor, limit: 100, forceRefetch: cursor === null }, 50000);
+        if (!Array.isArray(result.data)) throw new Error('Invalid app inventory');
+        apps.push(...result.data);
+        cursor = result.nextCursor;
+        if (cursor != null && (typeof cursor !== 'string' || cursors.has(cursor) || cursors.size >= 100)) {
+          throw new Error('Invalid app pagination');
+        }
+        cursors.add(cursor);
+      } while (cursor != null);
+      return apps;
+    }
+    const installed = await request('app/installed', { forceRefresh: true }, 50000).catch(() => null);
+    const installedApps = Array.isArray(installed?.apps) ? installed.apps : [];
+    const selected = installedApps.filter((app) => ['notion', 'linear', 'slack'].includes(app.runtimeName?.toLowerCase()));
+    let apps = [];
+    if (selected.length) {
+      const metadata = await request('app/read', { appIds: selected.map((app) => app.id), includeTools: false }, 50000).catch(() => null);
+      if (Array.isArray(metadata?.apps)) apps = metadata.apps;
+    }
+    let directoryFailed = false;
+    if (new Set(selected.map((app) => app.runtimeName.toLowerCase())).size < 3) {
+      try { apps.push(...await listApps()); }
+      catch { directoryFailed = true; }
+    }
+    return {
+      sources: projectSources(apps, installedApps).map((source) => directoryFailed && source.id === null
+        ? { ...source, message: 'La vérification a échoué. Réessaie dans un instant.' } : source),
+      checkedAt: new Date().toISOString(),
+    };
+  }
+
+  return { account, startLogin, cancelLogin, sources, close() { child?.kill(); } };
 }

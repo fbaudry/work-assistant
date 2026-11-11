@@ -2,7 +2,7 @@
 
 Espace de travail personnel, construit progressivement autour du travail avec l’IA.
 
-La priorité actuelle est une **app web locale** pour essayer l’interface dans le navigateur et l’améliorer à partir des retours. Elle permet de créer des projets et conserver leurs notes. Les connecteurs aux outils de travail et les agents IA seront ajoutés dans les prochaines itérations.
+La priorité actuelle est une **app web locale** pour essayer l’interface dans le navigateur et l’améliorer à partir des retours. Elle permet de créer des projets, conserver leurs notes et consulter un contexte collecté depuis plusieurs sources. Les accès autonomes aux outils et les agents IA sont construits progressivement.
 
 ## Développement
 
@@ -30,6 +30,16 @@ L’accueil web propose **Connecter mon compte OpenAI**. Le bouton ouvre la conn
 Le serveur local utilise le [protocole officiel Codex app-server](https://learn.chatgpt.com/docs/app-server) pour l’authentification. Codex gère les jetons dans un dossier privé `.work-assistant/codex/`, exclu de Git et du packaging. Cette session est distincte de celle du CLI ou de l’application Codex : aucun compte déjà connecté n’est importé. Le navigateur ne reçoit aucun jeton et aucun mot de passe n’est saisi dans Work Assistant. Le dossier contient des identifiants et doit rester privé.
 
 Le CLI `codex` doit être disponible dans le `PATH` du serveur. Si nécessaire, `WORK_ASSISTANT_CODEX_BIN` permet d’indiquer le chemin de son exécutable. La connexion nécessite Internet ; le serveur Work Assistant reste sur `127.0.0.1:5173`. Ce parcours est réservé à la version locale : un hébergement web public nécessitera une autre intégration d’authentification. Le build statique et le socle Electron ne fournissent pas ce serveur de connexion.
+
+## Contexte d’un projet
+
+Après connexion, l’app affiche les contextes présents dans le fichier privé `.work-assistant/context.json`. Ce fichier reste sur le poste et ne fait pas partie du dépôt : un clone neuf commence sans contexte importé. Son format est décrit par `ProjectContext` dans `src/SourceContext.tsx` et contrôlé côté serveur dans `server/project-context.mjs`.
+
+La vue **Sources** présente la couverture de Notion, Linear et Slack, un catalogue recherchable et les accès vérifiés dans la session OpenAI de Work Assistant. La vue **Synthèse** regroupe les décisions et les questions ouvertes, avec des liens vers leurs preuves. Les dates d’édition sont conservées ; une contradiction entre documents reste une question, pas une décision déduite de la seule date.
+
+L’import initial est effectué explicitement depuis la conversation et porte la mention **Collecte ponctuelle**. Il ne s’actualise pas automatiquement. Les connexions disponibles dans la conversation ne sont pas copiées dans l’app : celle-ci consulte son propre catalogue OpenAI et ses outils disponibles. Si une source n’y apparaît pas ou si la vérification échoue, l’interface le signale. Un lien de connexion n’est proposé que si OpenAI le fournit.
+
+L’API locale refuse les requêtes provenant d’un autre site. Les lectures du contexte et des accès nécessitent un compte connecté ; les fichiers privés sont interdits via le serveur de fichiers Vite. Aucune écriture n’est effectuée dans les sources externes. La synchronisation continue et le travail des agents restent à implémenter.
 
 ## Vérification et distribution
 

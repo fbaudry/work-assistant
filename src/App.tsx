@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import type { UpdateState } from './bridge';
 import OpenAIConnection from './OpenAIConnection';
+import SourceContext, { type ProjectContext } from './SourceContext';
 
 type Project = {
   id: string;
@@ -36,7 +37,12 @@ export default function App() {
   const storageLocation = desktop ? 'sur ce Mac' : 'dans ce navigateur';
   const [initial] = useState(readProjects);
   const [projects, setProjects] = useState(initial.projects);
-  const [screen, setScreen] = useState<'projects' | 'activity' | 'settings'>('projects');
+  const [screen, setScreen] = useState<'projects' | 'activity' | 'settings' | 'context'>('projects');
+  const [contexts, setContexts] = useState<ProjectContext[]>([]);
+  const [contextId, setContextId] = useState<string | null>(null);
+  const [contextError, setContextError] = useState('');
+  const [contextLoading, setContextLoading] = useState(false);
+  const selectedContext = contexts.find((item) => item.id === contextId);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [tab, setTab] = useState<'notes' | 'context'>('notes');
   const [creating, setCreating] = useState(false);
@@ -48,6 +54,26 @@ export default function App() {
   const [updates, setUpdates] = useState<UpdateState>({ status: 'idle', message: 'Vérification non effectuée.' });
   const [restarting, setRestarting] = useState(false);
   const project = projects.find((item) => item.id === selectedId);
+
+  useEffect(() => {
+    if (desktop || !openAIConnected) return;
+    const controller = new AbortController();
+    setContextLoading(true);
+    fetch('/api/context', { cache: 'no-store', signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Context unavailable');
+        const data: { projects: ProjectContext[] } = await response.json();
+        if (controller.signal.aborted) return;
+        setContexts(data.projects);
+        if (data.projects.length) {
+          setContextId(data.projects[0].id);
+          setScreen('context');
+        }
+      })
+      .catch(() => { if (!controller.signal.aborted) setContextError('Le contexte collecté n’a pas pu être chargé. Recharge la page pour réessayer.'); })
+      .finally(() => { if (!controller.signal.aborted) setContextLoading(false); });
+    return () => controller.abort();
+  }, [desktop, openAIConnected]);
 
   useEffect(() => {
     const bridge = window.workAssistant;
@@ -156,6 +182,7 @@ export default function App() {
           <button className={screen === 'projects' ? 'nav-item selected' : 'nav-item'} onClick={() => { setScreen('projects'); setSelectedId(null); setCreating(false); }} aria-current={screen === 'projects' ? 'page' : undefined}><span className="nav-icon" aria-hidden="true">▦</span>Projets</button>
           <button className={screen === 'activity' ? 'nav-item selected' : 'nav-item'} onClick={() => setScreen('activity')} aria-current={screen === 'activity' ? 'page' : undefined}><span className="nav-icon" aria-hidden="true">◷</span>Activité</button>
         </nav>
+        {contexts.length > 0 && <div className="project-navigation"><p className="sidebar-label">Contexte des projets</p>{contexts.map((item) => <button key={item.id} className={screen === 'context' && contextId === item.id ? 'project-nav selected' : 'project-nav'} onClick={() => { setContextId(item.id); setScreen('context'); }}><span className="project-dot" aria-hidden="true" />{item.name}</button>)}</div>}
         {projects.length > 0 && <div className="project-navigation"><p className="sidebar-label">Mes projets</p>{projects.map((item) => <button key={item.id} className={screen === 'projects' && selectedId === item.id ? 'project-nav selected' : 'project-nav'} onClick={() => openProject(item.id)}><span className="project-dot" aria-hidden="true" />{item.name}</button>)}</div>}
         <div className="sidebar-bottom">
           <button className={screen === 'settings' ? 'nav-item selected' : 'nav-item'} onClick={() => setScreen('settings')} aria-current={screen === 'settings' ? 'page' : undefined}><span className="nav-icon" aria-hidden="true">⚙</span>Réglages{updates.status === 'ready' && <span className="update-dot" aria-label="Mise à jour disponible" />}</button>
@@ -164,12 +191,15 @@ export default function App() {
       </aside>
 
       <div className="workspace">
-        <header className="titlebar"><span>{screen === 'settings' ? 'Réglages' : screen === 'activity' ? 'Activité' : project && !creating ? `Projets / ${project.name}` : 'Projets'}</span>{desktop ? <button className="text-button no-drag" onClick={openFeedback}>Donner mon avis ↗</button> : <span className="preview-label">Prévisualisation locale</span>}</header>
+        <header className="titlebar"><span>{screen === 'context' ? `Projets / ${selectedContext?.name ?? 'Contexte'}` : screen === 'settings' ? 'Réglages' : screen === 'activity' ? 'Activité' : project && !creating ? `Projets / ${project.name}` : 'Projets'}</span>{desktop ? <button className="text-button no-drag" onClick={openFeedback}>Donner mon avis ↗</button> : <span className="preview-label">Prévisualisation locale</span>}</header>
         {updates.status === 'ready' && screen !== 'settings' && <div className="update-banner"><span>La version {updates.version} est prête.</span><button className="text-button" onClick={() => setScreen('settings')}>Voir la mise à jour →</button></div>}
         {saveError && <div className="error-banner" role="alert">{saveError}</div>}
         {actionError && <div className="error-banner" role="alert">{actionError}</div>}
+        {contextError && <div className="error-banner" role="alert">{contextError}</div>}
 
         <main>
+          {contextLoading && <p className="page-description" role="status">Chargement du contexte collecté…</p>}
+          {screen === 'context' && selectedContext && <SourceContext key={selectedContext.id} project={selectedContext} />}
           {screen === 'projects' && creating && <section className="page narrow-page">
             <button className="back-button" onClick={() => setCreating(false)}>← Projets</button>
             <h1>Nouveau projet</h1><p className="page-description">Un espace pour rassembler ton objectif et tes notes.</p>
@@ -181,8 +211,9 @@ export default function App() {
           </section>}
 
           {screen === 'projects' && !creating && !project && <section className="page">
-            <div className="page-heading"><div><h1>Projets</h1><p className="page-description">Tes espaces de travail, conservés {storageLocation}.</p></div><button className="primary-button" onClick={() => setCreating(true)} disabled={Boolean(initial.error)}>+ Nouveau projet</button></div>
-            {projects.length === 0 ? <div className="empty-state"><div className="empty-symbol" aria-hidden="true">▦</div><h2>Commençons par un projet</h2><p>Donne-lui un nom, pose ton objectif et rassemble tes premières notes.</p><button className="secondary-button" onClick={() => setCreating(true)} disabled={Boolean(initial.error)}>Créer mon premier projet</button></div> : <div className="project-list"><div className="list-heading"><span>Nom</span><span>Dernière modification</span></div>{projects.map((item) => <button key={item.id} className="project-row" onClick={() => openProject(item.id)}><span className="project-row-name"><span className="folder-symbol" aria-hidden="true">▱</span><span><strong>{item.name}</strong><span className="project-objective-preview">{item.objective || 'Aucun objectif renseigné'}</span></span></span><time dateTime={item.updatedAt}>{dateFormat.format(new Date(item.updatedAt))}</time></button>)}</div>}
+            <div className="page-heading"><div><h1>Projets</h1><p className="page-description">{contexts.length ? 'Tes projets et leur contexte, réunis au même endroit.' : `Tes espaces de travail, conservés ${storageLocation}.`}</p></div><button className="primary-button" onClick={() => setCreating(true)} disabled={Boolean(initial.error)}>+ Nouveau projet</button></div>
+            {contexts.length > 0 && <div className="project-list">{contexts.map((item) => <button key={item.id} className="project-row" onClick={() => { setContextId(item.id); setScreen('context'); }}><span className="project-row-name"><span className="folder-symbol" aria-hidden="true">▱</span><span><strong>{item.name}</strong><span className="project-objective-preview">Contexte collecté · Notion, Linear et Slack</span></span></span><time dateTime={item.collectedAt}>{dateFormat.format(new Date(item.collectedAt))}</time></button>)}</div>}
+            {projects.length === 0 && contexts.length === 0 ? <div className="empty-state"><div className="empty-symbol" aria-hidden="true">▦</div><h2>Commençons par un projet</h2><p>Donne-lui un nom, pose ton objectif et rassemble tes premières notes.</p><button className="secondary-button" onClick={() => setCreating(true)} disabled={Boolean(initial.error)}>Créer mon premier projet</button></div> : projects.length > 0 && <div className="project-list"><div className="list-heading"><span>Nom</span><span>Dernière modification</span></div>{projects.map((item) => <button key={item.id} className="project-row" onClick={() => openProject(item.id)}><span className="project-row-name"><span className="folder-symbol" aria-hidden="true">▱</span><span><strong>{item.name}</strong><span className="project-objective-preview">{item.objective || 'Aucun objectif renseigné'}</span></span></span><time dateTime={item.updatedAt}>{dateFormat.format(new Date(item.updatedAt))}</time></button>)}</div>}
             <div className="first-version-note"><span className="small-label">Première version</span><p>Les projets et notes sont disponibles. Les connexions aux outils et le travail avec l’IA seront ajoutés progressivement.</p></div>
           </section>}
 
