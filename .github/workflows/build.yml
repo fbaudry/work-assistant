@@ -1,0 +1,100 @@
+name: Build and release
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+
+  mac-preview:
+    needs: verify
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.MAC_RELEASES_ENABLED != 'true'
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run package:local
+      - name: Archive the local preview
+        run: ditto -c -k --sequesterRsrc --keepParent 'release/mac-arm64/Work Assistant.app' release/Work-Assistant-local-preview.zip
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: mac-local-preview
+          path: release/Work-Assistant-local-preview.zip
+          retention-days: 7
+      - run: echo 'Local preview only. Signed releases require the Apple secrets and MAC_RELEASES_ENABLED=true. See docs/releases.md.' >> "$GITHUB_STEP_SUMMARY"
+
+  release:
+    needs: verify
+    concurrency:
+      group: mac-release
+      cancel-in-progress: false
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.MAC_RELEASES_ENABLED == 'true'
+    runs-on: macos-15
+    permissions:
+      contents: write
+    env:
+      CSC_LINK: ${{ secrets.CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Check signing configuration
+        shell: bash
+        run: |
+          for name in CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Missing Actions secret: $name"
+              exit 1
+            fi
+          done
+      - run: npm ci
+      - name: Assign a unique version
+        id: version
+        run: npm run version:ci
+      - name: Build, sign and notarize
+        run: npm run package:release
+      - name: Verify signature and notarization
+        run: |
+          codesign --verify --deep --strict --verbose=2 'release/mac-arm64/Work Assistant.app'
+          spctl --assess --type execute --verbose=2 'release/mac-arm64/Work Assistant.app'
+          xcrun stapler validate 'release/mac-arm64/Work Assistant.app'
+          test -s release/alpha-mac.yml
+      - name: Publish the complete prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        shell: bash
+        run: |
+          current_sha=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)
+          if [[ "$current_sha" != "$GITHUB_SHA" ]]; then
+            echo 'A newer commit is already on main; its build will publish the next update.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          printf 'Version de test de Work Assistant.\n\nCommit : %s\n\nPremière installation : télécharger le DMG Apple Silicon. Les installations existantes proposent ensuite la mise à jour dans l’application.\n' "$GITHUB_SHA" > "$RUNNER_TEMP/release-notes.md"
+          gh release create "v$VERSION" --draft --prerelease --target "$GITHUB_SHA" --title "Work Assistant $VERSION" --notes-file "$RUNNER_TEMP/release-notes.md"
+          gh release upload "v$VERSION" release/*.dmg release/*.zip release/alpha-mac.yml release/*.blockmap
+          gh release edit "v$VERSION" --draft=false --prerelease --latest=false

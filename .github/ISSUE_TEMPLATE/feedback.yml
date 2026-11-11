@@ -1,0 +1,24 @@
+name: Retour sur l’application
+description: Proposer une amélioration ou signaler un problème.
+title: '[Feedback] '
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Version de Work Assistant
+      placeholder: 0.1.0-alpha.1.1
+  - type: textarea
+    id: usage
+    attributes:
+      label: Ce que je voulais faire
+    validations:
+      required: true
+  - type: textarea
+    id: observation
+    attributes:
+      label: Ce qui s’est passé ou ce que je voudrais changer
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: 'Cette issue sera publique. Partage uniquement les informations utiles que tu souhaites rendre publiques.'

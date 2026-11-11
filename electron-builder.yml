@@ -1,0 +1,28 @@
+appId: io.github.fbaudry.work-assistant
+productName: Work Assistant
+asar: true
+directories:
+  output: release
+files:
+  - dist/**
+  - electron/main.cjs
+  - electron/preload.cjs
+  - electron/updates.cjs
+  - package.json
+mac:
+  category: public.app-category.productivity
+  minimumSystemVersion: '13.0'
+  hardenedRuntime: true
+  notarize: true
+  target:
+    - target: dmg
+      arch: [arm64]
+    - target: zip
+      arch: [arm64]
+artifactName: Work-Assistant-${version}-${arch}.${ext}
+publish:
+  provider: github
+  owner: fbaudry
+  repo: work-assistant
+  channel: alpha
+  releaseType: prerelease
