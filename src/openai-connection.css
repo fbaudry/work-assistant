@@ -1,0 +1,118 @@
+.openai-onboarding {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+}
+
+.openai-onboarding-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 28px 32px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.openai-onboarding-main {
+  width: min(100%, 530px);
+  margin: auto;
+  padding: 56px 28px 72px;
+  text-align: center;
+}
+
+.openai-connection-mark {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  margin: 0 auto 30px;
+  border-radius: 15px;
+  background: light-dark(#eeeefa, #2d2b45);
+  color: var(--accent);
+  font-size: 27px;
+  font-weight: 500;
+}
+
+.openai-eyebrow {
+  margin-bottom: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.openai-onboarding-main h1 {
+  font-size: clamp(26px, 4.5vw, 32px);
+  letter-spacing: -.9px;
+  line-height: 1.2;
+}
+
+.openai-introduction {
+  margin: 18px auto 0;
+  max-width: 390px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.openai-connection-actions { margin: 32px auto 0; max-width: 360px; }
+
+.openai-connect-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 46px;
+  padding: 12px 16px;
+  border: 1px solid light-dark(#625dce, #6962d5);
+  border-radius: 8px;
+  background: light-dark(#625dce, #6962d5);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.openai-connect-button:not(:disabled):hover { background: light-dark(#514cb8, #7972e5); }
+.openai-connect-button span { flex-shrink: 0; }
+
+.openai-pending {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.openai-login-link {
+  display: inline-block;
+  padding: 8px 0;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-size: 13px;
+}
+
+.openai-cancel-button {
+  padding: 9px 14px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.openai-cancel-button:hover { background: var(--subtle); }
+.openai-connection-error { margin-top: 16px; color: var(--danger); font-size: 13px; line-height: 1.6; }
+.openai-connection-details { margin: 28px auto 0; max-width: 360px; }
+.openai-connection-details p { color: var(--muted); font-size: 12px; line-height: 1.7; }
+.openai-connection-details p + p { margin-top: 10px; }
+.openai-onboarding-footer { padding: 20px 24px; color: var(--muted); font-size: 11px; text-align: center; }
+
+@media (max-width: 480px) {
+  .openai-onboarding-brand { padding: 22px 20px; }
+  .openai-onboarding-main { padding: 40px 24px; }
+  .openai-connection-mark { margin-bottom: 24px; }
+  .openai-connect-button { font-size: 13px; }
+  .openai-cancel-button, .openai-login-link { min-height: 44px; }
+}

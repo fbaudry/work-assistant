@@ -9,3 +9,4 @@ release/
 *.pem
 *.key
 coverage/
+.work-assistant/

@@ -6,7 +6,7 @@ La priorité actuelle est une **app web locale** pour essayer l’interface dans
 
 ## Développement
 
-Node.js 22.12 ou plus récent sur la branche 22 et npm.
+Node.js 22.12 ou plus récent sur la branche 22, npm et [Codex CLI](https://developers.openai.com/codex/cli/) (parcours vérifié avec la version 0.153.2).
 
 ```sh
 npm ci
@@ -21,7 +21,15 @@ npm run dev:desktop   # Ouvrir le socle Electron (macOS)
 npm run package:local # Compiler le socle Mac dans release/mac-arm64/
 ```
 
-La version web conserve les projets dans le stockage local du navigateur. Garder la même adresse et le même navigateur pour retrouver les notes. Elles ne sont pas synchronisées avec l’app Mac ; effacer les données du site les supprime. Aucun outil de travail, compte ou modèle IA n’est connecté et aucun contenu local n’est envoyé automatiquement.
+La version web conserve les projets dans le stockage local du navigateur. Garder la même adresse et le même navigateur pour retrouver les notes. Elles ne sont pas synchronisées avec l’app Mac ; effacer les données du site les supprime. Aucun contenu local n’est envoyé automatiquement à une IA.
+
+## Connexion OpenAI
+
+L’accueil web propose **Connecter mon compte OpenAI**. Le bouton ouvre la connexion officielle ChatGPT via Codex dans une autre fenêtre. Choisir son compte et son espace personnels, terminer la connexion chez OpenAI, puis revenir à Work Assistant. Les projets s’affichent après confirmation par Codex. La session prépare le travail avec l’IA ; les agents ne sont pas encore implémentés et aucun appel à un modèle n’est effectué.
+
+Le serveur local utilise le [protocole officiel Codex app-server](https://learn.chatgpt.com/docs/app-server) pour l’authentification. Codex gère les jetons dans un dossier privé `.work-assistant/codex/`, exclu de Git et du packaging. Cette session est distincte de celle du CLI ou de l’application Codex : aucun compte déjà connecté n’est importé. Le navigateur ne reçoit aucun jeton et aucun mot de passe n’est saisi dans Work Assistant. Le dossier contient des identifiants et doit rester privé.
+
+Le CLI `codex` doit être disponible dans le `PATH` du serveur. Si nécessaire, `WORK_ASSISTANT_CODEX_BIN` permet d’indiquer le chemin de son exécutable. La connexion nécessite Internet ; le serveur Work Assistant reste sur `127.0.0.1:5173`. Ce parcours est réservé à la version locale : un hébergement web public nécessitera une autre intégration d’authentification. Le build statique et le socle Electron ne fournissent pas ce serveur de connexion.
 
 ## Vérification et distribution
 

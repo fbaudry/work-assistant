@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import type { UpdateState } from './bridge';
+import OpenAIConnection from './OpenAIConnection';
 
 type Project = {
   id: string;
@@ -31,6 +32,7 @@ function readProjects(): { projects: Project[]; error: string } {
 
 export default function App() {
   const desktop = Boolean(window.workAssistant);
+  const [openAIConnected, setOpenAIConnected] = useState(false);
   const storageLocation = desktop ? 'sur ce Mac' : 'dans ce navigateur';
   const [initial] = useState(readProjects);
   const [projects, setProjects] = useState(initial.projects);
@@ -142,6 +144,8 @@ export default function App() {
     ready: 'Mise à jour prête à installer',
     error: 'Mise à jour indisponible',
   }[updates.status];
+
+  if (!desktop && !openAIConnected) return <OpenAIConnection onConnected={() => setOpenAIConnected(true)} />;
 
   return (
     <div className={desktop ? 'app-shell' : 'app-shell web-app'}>
